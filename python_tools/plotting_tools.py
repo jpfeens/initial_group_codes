@@ -409,7 +409,6 @@ def ax_plot_annotation_and_styling(ax, plot_parameters):
 
     '''
     import sys
-    #from itertools import compress
     
     # Check that necessary parameters are present in plot_parameters
     required_parameters = ['xlabel','ylabel','ftsize','axis_bounds','grid_on','x_ticks','x_tick_labels','y_ticks']
@@ -431,16 +430,43 @@ def ax_plot_annotation_and_styling(ax, plot_parameters):
     ax.grid(plot_parameters['grid_on'], which='both')
     
     # Legend
+    ax = ax_plot_legend(ax, plot_parameters)
+    
+    # Ticks and tick labels
+    ax.tick_params(axis='both', which='major', pad=7)
+    ax.set_xticks(plot_parameters['x_ticks'])
+    ax.set_xticklabels(plot_parameters['x_tick_labels'], fontsize=plot_parameters['ftsize'])
+    ax.set_yticks(plot_parameters['y_ticks'])
+    # Format y-tick labels to print decimals rather than scientific notation
+    vals = ax.get_yticks()
+    ax.set_yticklabels(['{:.1g}'.format(x) if x >= 1 
+                        else '{:.9f}'.format(x).rstrip('0') for x in vals],
+                       fontsize=plot_parameters['ftsize'])
+    
+    return ax
+
+def ax_plot_legend(ax, plot_parameters):
+    from itertools import compress, combinations_with_replacement
     
     # Still working out how to simplify the legend arguments based on keys passed in plot_parameters
     # Perhaps this is the place to create a class to handle all the argument permutations
-    #legend_parameters = ['legend_title','legend_loc','legend_ftsize']
-    #legend_parameters_bool = [parameter in plot_parameters for parameter in legend_parameters]
-    #legend_parameters_present = list(compress(legend_parameters, legend_parameters_bool))
+    legend_parameters_possible = ['legend_title','legend_loc','legend_ftsize']
+    legend_parameters_bool = [parameter in plot_parameters for parameter in legend_parameters_possible]
+    legend_parameters_present = list(compress(legend_parameters_possible, legend_parameters_bool))
+    legend_parameters_comboniations = sorted([list(set(x)) for x in list(combinations_with_replacement(legend_parameters_possible,len(legend_parameters_possible)))])
+    print(legend_parameters_comboniations)
+    
+    #Try Dictionary containing all possibilities and their ax.legend() command
+    
+    legend_master_dictionary = dict.fromkeys(legend_parameters_comboniations)
+    
+    
+    
     
     if 'legend_title' in plot_parameters:
         ax.legend(edgecolor='inherit', borderpad=0.7, labelspacing=0.5, handlelength=2.5,
-               fontsize=plot_parameters['ftsize']-6, title=plot_parameters['legend_title'])
+               fontsize=plot_parameters['ftsize']-6, title=plot_parameters['legend_title'], 
+               title_fontsize = plot_parameters['ftsize']-4)
     elif 'legend_loc' in plot_parameters:
         ax.legend(edgecolor='inherit', borderpad=0.7, labelspacing=0.5, handlelength=2.5,
                fontsize=plot_parameters['ftsize']-6, loc=plot_parameters['legend_loc'])
@@ -454,18 +480,7 @@ def ax_plot_annotation_and_styling(ax, plot_parameters):
     else:
         ax.legend(edgecolor='inherit', borderpad=0.7, labelspacing=0.5, handlelength=2.5,
                fontsize=plot_parameters['ftsize']-6)
-
-
-    # Ticks and tick labels
-    ax.tick_params(axis='both', which='major', pad=7)
-    ax.set_xticks(plot_parameters['x_ticks'])
-    ax.set_xticklabels(plot_parameters['x_tick_labels'], fontsize=plot_parameters['ftsize'])
-    ax.set_yticks(plot_parameters['y_ticks'])
-    # Format y-tick labels to print decimals rather than scientific notation
-    vals = ax.get_yticks()
-    ax.set_yticklabels(['{:.1g}'.format(x) if x >= 1 else '{:.9f}'.format(x).rstrip('0') for x in vals],
-                       fontsize=plot_parameters['ftsize'])
-    
+        
     return ax
 
 

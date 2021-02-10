@@ -79,9 +79,4 @@ def openquake_header_checks(header,check1,check2):
         print('Results read not for', check2)
         sys.exit()
         
-def command_line_git_commit_test():
-    import datetime
-    print("Testing git commits from command line.",datetime.now())
 
-def my_test_function():
-    print('Test this function')
