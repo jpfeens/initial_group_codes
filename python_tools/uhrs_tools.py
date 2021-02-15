@@ -67,4 +67,3 @@ def read_uhrs_openquake(mean_or_fractile, filename_prefix, results_dir, OQrunnum
         df.at[ind,col] = acceleration
         
     return df
-
