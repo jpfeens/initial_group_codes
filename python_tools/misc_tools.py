@@ -79,4 +79,98 @@ def openquake_header_checks(header,check1,check2):
         print('Results read not for', check2)
         sys.exit()
         
+def read_openquake_source_model_input(source_model_input_filepath):
+    '''
+    Parse OpenQuake seismic source model input file and put information in a dataframe
 
+    Parameters
+    ----------
+    source_model_input_filepath : STR
+        Filepath of the OpenQuake seismic source model logic tree input file.
+
+    Returns
+    -------
+    df_source_model : Pandas DataFrame
+        DataFrame with the source model branch ID, source model file name, and source model weight.
+
+    '''
+    import pandas as pd
+    
+    df_source_model = pd.DataFrame()
+    f = open(source_model_input_filepath)
+    data = f.readlines()
+    f.close()
+    
+    branch_id = []
+    source_model_name = []
+    source_model_weight = []
+    
+    for line in data:
+        if 'branchID=' in line:
+            #print(n)
+            b = line.split('=')[1]
+            branch_id.append(b.split('"')[1])
+    
+        if  'uncertaintyModel' in line:
+            #print(n)
+            smn = line.split('</')[0].split('>')[1]
+            source_model_name.append(smn)
+    
+        if  'uncertaintyWeight' in line:
+            #print(n)
+            smw = line.split('</')[0].split('>')[1]
+            source_model_weight.append(smw)
+
+    df_source_model['branch_id'] = branch_id
+    df_source_model['source_model'] = source_model_name
+    df_source_model['source_model_weight'] = source_model_weight
+    
+    return df_source_model
+
+def read_openquake_gmm_input(gmm_input_filepath):
+    '''
+    Parse OpenQuake ground motion model input file and put information in a dataframe
+
+    Parameters
+    ----------
+    gmm_input_filepath : STR
+        Filepath of the OpenQuake ground motion model logic tree input file.
+
+    Returns
+    -------
+    df_gmms : Pandas DataFrame
+        DataFrame with the gmm branch ID, gmm file name, and gmm weight.
+
+    '''
+    import pandas as pd
+    
+    df_source_model = pd.DataFrame()
+    f = open(source_model_input_filepath)
+    data = f.readlines()
+    f.close()
+    
+    branch_id = []
+    source_model_name = []
+    source_model_weight = []
+    
+    for line in data:
+        if 'branchID=' in line:
+            #print(n)
+            b = line.split('=')[1]
+            branch_id.append(b.split('"')[1])
+    
+        if  'uncertaintyModel' in line:
+            #print(n)
+            smn = line.split('</')[0].split('>')[1]
+            source_model_name.append(smn)
+    
+        if  'uncertaintyWeight' in line:
+            #print(n)
+            smw = line.split('</')[0].split('>')[1]
+            source_model_weight.append(smw)
+
+    df_source_model['branch_id'] = branch_id
+    df_source_model['source_model'] = source_model_name
+    df_source_model['source_model_weight'] = source_model_weight
+    
+    return df_source_model

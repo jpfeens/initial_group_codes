@@ -392,6 +392,7 @@ def plot_hazard_by_gmm():
     print('Starting to write a function to plot hazard curves by GMM')
 
 
+
 # General Plotting Routines
 
 def ax_plot_annotation_and_styling(ax, plot_parameters):
@@ -417,7 +418,7 @@ def ax_plot_annotation_and_styling(ax, plot_parameters):
         sys.exit()
     optional_parameters = ['legend_title','legend_loc','legend_ftsize']
     if not all(parameter in plot_parameters for parameter in optional_parameters):
-        print('Some optional parameters are missing and can be set: ', 
+        print('#STILL UNDER DEVELOPMENT - ONLY legend_loc CURRENTLY SUPPORTED#\nSome optional parameters are missing and can be set: ', 
               set(optional_parameters) - plot_parameters.keys())
         
     # Axis Labels
@@ -430,7 +431,9 @@ def ax_plot_annotation_and_styling(ax, plot_parameters):
     ax.grid(plot_parameters['grid_on'], which='both')
     
     # Legend
-    ax = ax_plot_legend(ax, plot_parameters)
+    ## STILL UNDER DEVELOPMENT ## ax = ax_plot_legend(ax, plot_parameters)
+    ax.legend(edgecolor='inherit', borderpad=0.7, labelspacing=0.5, handlelength=2.5,
+               fontsize=plot_parameters['ftsize']-6)
     
     # Ticks and tick labels
     ax.tick_params(axis='both', which='major', pad=7)
