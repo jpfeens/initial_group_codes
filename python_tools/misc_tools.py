@@ -95,6 +95,7 @@ def read_openquake_source_model_input(source_model_input_filepath):
 
     '''
     import pandas as pd
+    import numpy as np
     
     df_source_model = pd.DataFrame()
     f = open(source_model_input_filepath)
@@ -123,11 +124,11 @@ def read_openquake_source_model_input(source_model_input_filepath):
 
     df_source_model['branch_id'] = branch_id
     df_source_model['source_model'] = source_model_name
-    df_source_model['source_model_weight'] = source_model_weight
+    df_source_model['source_model_weight'] = np.asarray([float(x) for x in source_model_weight]).astype('float32')
     
     return df_source_model
 
-def read_openquake_gmm_input(gmm_input_filepath):
+def read_openquake_gmm_input(gmm_input_filepath, trts):
     '''
     Parse OpenQuake ground motion model input file and put information in a dataframe
 
@@ -135,42 +136,131 @@ def read_openquake_gmm_input(gmm_input_filepath):
     ----------
     gmm_input_filepath : STR
         Filepath of the OpenQuake ground motion model logic tree input file.
+    trts : DICT
+        Dictionary of the column headers and applicable tectonic region types for the gmms used. 
+        e.g. {'gmms_trt1' : 'cratonic', 'gmms_trt2' : 'non-cratonic'}
 
     Returns
     -------
     df_gmms : Pandas DataFrame
-        DataFrame with the gmm branch ID, gmm file name, and gmm weight.
+        DataFrame with the gmm tectonic region, gmm file name, and gmm weight.
 
     '''
     import pandas as pd
+    import numpy as np
+    import sys
     
-    df_source_model = pd.DataFrame()
-    f = open(source_model_input_filepath)
+    # Add to this list as we expand OpenQuake capabilities with subduction zones
+    acceptable_trts = ['cratonic','non_cratonic']
+    for k,v in trts.items():
+        if not k.startswith('gmms_trt'):
+            print('trts keys must start with `gmms_trt`, followed by a number')
+            sys.exit()
+        if v not in acceptable_trts:
+            print(v,'is not a currently supported trt.\nCurrently supported trts:',acceptable_trts)
+            sys.exit()
+        
+    
+    
+    df_gmm_logic_tree = pd.DataFrame()
+    f = open(gmm_input_filepath)
     data = f.readlines()
     f.close()
     
-    branch_id = []
-    source_model_name = []
-    source_model_weight = []
+    trts_indices_start = []
+    trts_indices_end_all = []
+    all_trts = []
+    for linenum in range(len(data)):
+        if 'applyToTectonicRegionType=' in data[linenum]:
+            trts_indices_start.append(linenum)
+            all_trts.append(data[linenum].split('"')[1].lower())
+        if '</logicTreeBranchSet>' in data[linenum]:
+            trts_indices_end_all.append(linenum)
     
-    for line in data:
-        if 'branchID=' in line:
-            #print(n)
-            b = line.split('=')[1]
-            branch_id.append(b.split('"')[1])
-    
-        if  'uncertaintyModel' in line:
-            #print(n)
-            smn = line.split('</')[0].split('>')[1]
-            source_model_name.append(smn)
-    
-        if  'uncertaintyWeight' in line:
-            #print(n)
-            smw = line.split('</')[0].split('>')[1]
-            source_model_weight.append(smw)
+    trts_indices_end_all = np.asarray(trts_indices_end_all)
+    trts_indices_end = []
+    #Clean up end lines that don't correspond with start lines
+    if len(trts_indices_end_all) != len(trts_indices_start):
+        for i,s in enumerate(trts_indices_start):
+            end_ind = [min(x) for x in list(np.subtract(trts_indices_end_all,s)) if x > 0][0]
+            trts_indices_end.append(end_ind)
+    else:
+        trts_indices_end = trts_indices_end_all
 
-    df_source_model['branch_id'] = branch_id
-    df_source_model['source_model'] = source_model_name
-    df_source_model['source_model_weight'] = source_model_weight
+   
+    # Only keep the tectonic region types applicable to this site
+    keep_trts_inds = [(trts_indices_start[i],trts_indices_end[i]) for i,x in enumerate(all_trts) if x.lower() in trts.values()]
     
-    return df_source_model
+    gmm_tectonic_region = []
+    gmm_name = []
+    gmm_weight = []
+    
+    for i,trt_ind_range in enumerate(keep_trts_inds):
+        count = 0
+        start_i = trt_ind_range[0]
+        end_i = trt_ind_range[1]
+        tr = data[start_i].split('"')[1]
+        #print('working on',tr,'GMMs from lines',start_i,end_i)
+        for line in data[start_i:end_i]:
+            if  'uncertaintyModel' in line:
+                gmmn = line.split('</')[0].split('>')[1]
+                gmm_name.append(gmmn)
+                count = count +1
+            if  'uncertaintyWeight' in line:
+                gmmw = line.split('</')[0].split('>')[1]
+                gmm_weight.append(gmmw)
+        gmm_tr_tmp = [tr]*count
+        gmm_tectonic_region.append(gmm_tr_tmp)
+    
+    df_gmm_logic_tree['tectonic_region'] = [item for sublist in gmm_tectonic_region for item in sublist]
+    df_gmm_logic_tree['gmm_name'] = gmm_name
+    df_gmm_logic_tree['gmm_weight'] = np.asarray([float(x) for x in gmm_weight]).astype('float32')
+    
+    return df_gmm_logic_tree
+
+def format_openquake_realization_output(realisation_output_filepath):
+    '''
+    Open, parse, and create a DataFrame from the OpenQuake realisation output
+
+    Parameters
+    ----------
+    realisation_output_filepath : STR
+        Filepath to OpenQuake realization csv output file.
+
+    Returns
+    -------
+    df_realisation : Pandas DataFrame
+        DataFrame containing the rlz values, branch paths, and weights for each logic tree realisation.
+
+    '''
+    import sys
+    import pandas as pd
+    import numpy as np
+    df_realisation = pd.read_csv(realisation_output_filepath)
+    df_realisation['rlz_id'] = ["%03d" % i for i in df_realisation['rlz_id'].tolist()]
+    
+    # Determine how many tectonic region types were present in the calculation to categorise gmms 
+    # e.g. separate cratonic gmms from non-cratonic gmms from subduction gmms
+    tmp_branch_path = df_realisation.loc[0,'branch_path']
+    num_trts = len(tmp_branch_path.split('~')[1].split('_'))
+    
+    if num_trts == 0:
+        print('No GMMs listed in realization branch path.')
+        sys.exit()
+    else:
+        gmm_colnames = ['gmms_trt'+ str(x) for x in range(1,num_trts+1)]
+
+    for i,gmm_colname in enumerate(gmm_colnames):
+        df_realisation[gmm_colname] = [x.split('~')[1].split('_')[i] for x in df_realisation['branch_path'].tolist()]
+    
+    df_realisation['branch_path'] = [x.split('~')[0] for x in df_realisation['branch_path'].tolist()]
+    df_realisation.rename(columns={'weight': 'rlz_weight', 'branch_path' : 'source_model_branch_path'},inplace=True)
+    
+    # Check that the realisation weights sum to 1
+    rlz_weights = df_realisation['rlz_weight'].to_numpy()
+    if np.sum(rlz_weights.astype('float32')) != 1.0:
+        print('rlz weights do not sum to 1.')
+        print(np.sum(rlz_weights))
+        sys.exit()
+    
+    return df_realisation, num_trts
