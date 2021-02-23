@@ -635,7 +635,8 @@ def ax_plot_legend(ax, plot_parameters):
         if i==0:
             legend_entry = default_legend_entry
         if legend_parameter.split('_')[1] in legend_entry:
-            legend_entry = ' '.join([legend_parameter if x.strip().startswith(legend_parameter.split('_')[1]) else x.strip() for x in legend_entry.split(',')])
+            legend_entry = ', '.join([legend_master_dict[legend_parameter] if x.strip().startswith(legend_parameter.split('_')[1]) else x.strip() for x in legend_entry.split(',')]) +')'
+            print(legend_entry)
         else:
             legend_entry = legend_entry[:-1] + ', ' + legend_master_dict[legend_parameter] + ')'
             
