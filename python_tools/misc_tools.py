@@ -264,3 +264,88 @@ def format_openquake_realization_output(realisation_output_filepath):
         sys.exit()
     
     return df_realisation, num_trts
+
+def rename_openquake_realisation_df_cols(df_realisation, num_trts, trts):
+    trts_colnames = dict.fromkeys(trts.keys())
+    for trt_num,trt in trts.items():
+        trts_colnames[trt_num] = trt+'_gmms'
+    
+    if num_trts != len(trts):
+        print("The number of output tectonic region types",num_trts,"doesn't match the number of input tectonic region types",len(trts),'.')
+        sys.exit()
+    else:
+        df_realisation.rename(columns = trts_colnames, inplace=True)
+        
+    return df_realisation
+    
+
+def parse_openquake_job_ini_file(job_input_filepath):
+    '''
+    Parse OpenQuake job.ini input file and return the return periods, fractiles, and IMTs used in the calculation.
+
+    Parameters
+    ----------
+    job_input_filepath : STR
+        Filepath of job.ini file used in OpenQuake calculations.
+
+    Returns
+    -------
+    return_periods : LIST
+        List of return periods in decimal poe form.
+    fractiles : LIST
+        List of fractiles in decimal form.
+    IMTs : LIST
+        List of IMTs used in `PGA` or `SA(0.2)` OpenQuake form.
+    investigation_time : INT
+        Integer number of years over which the calculation is performed.
+
+    '''
+    f = open(job_input_filepath)
+    data = f.readlines()
+    f.close()
+
+    IMTs_tmp = []
+    for linenum in range(len(data)):
+        if data[linenum].startswith('quantile_hazard_curves'):
+            fractiles = sorted(list(data[linenum].split('=')[1].strip().replace(',','').split(' ')))
+        elif data[linenum].startswith('intensity_measure_types_and_levels') or data[linenum].startswith('\t'):
+            IMTs_tmp.append(data[linenum])
+        elif data[linenum].startswith('investigation_time'):
+            investigation_time = int(float(data[linenum].split('=')[1].strip()))
+        elif data[linenum].startswith('poes'):
+            return_periods = sorted(list(data[linenum].split('=')[1].strip().replace(',','').split(' ')),reverse=True)
+
+    #Clean up IMTs
+    if len(IMTs_tmp) == 1:
+        IMTs = list(dict(IMTs_tmp.split('=')[1].strip().strip('"')).keys())
+    else:
+        IMTs=[]
+        for imt_line in IMTs_tmp: 
+            if imt_line.startswith('intensity_measure_types_and_levels'):
+                IMTs.append(imt_line.split('{')[1].split('"')[1])
+            else:
+                IMTs.append(imt_line.split('"')[1])
+
+    return return_periods, fractiles, IMTs, investigation_time
+
+
+def make_gmm_label(string_to_parse):
+    '''
+    Adds spaces before capital letters or numbers. If two words are adjacent, it adds the word 'and' between them
+
+    Parameters
+    ----------
+    string_to_parse : STR
+        String version of GMM name that needs to be converted to a label for a legend entry.
+
+    Returns
+    -------
+    STR
+        GMM label ready for legend entry.
+
+    '''
+    import re
+    
+    words_or_numbers = re.findall('([A-Z][a-z]*)(\d+)*', string_to_parse)
+    words_or_numbers = [item if item != '' else 'and' for sublist in words_or_numbers for item in sublist]
+    return ' '.join(words_or_numbers)

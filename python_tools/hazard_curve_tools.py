@@ -144,8 +144,37 @@ def read_fractile_curve_openquake(fractile, IMT, results_dir, OQrunnum):
     
     return IMLs, accelerations
 
-
-
+def read_rlz_hazard_openquake(rlz, IMT, results_dir, OQrunnum):
+    
+    import os
+    import sys
+    
+    from misc_tools import openquake_header_checks
+    
+    filename = 'hazard_curve-rlz-' + rlz + '-' + IMT + '_' + OQrunnum + '.csv'
+    filepath = os.path.join(results_dir,filename)
+    
+    if not os.path.exists(filepath):
+        print(filepath,'not found')
+        sys.exit()
+    
+    # Read results while skipping blank lines
+    with open(filepath) as f:
+        lines = f.readlines()
+    lines = [x for x in lines if not x=='\n']
+    
+    header_line = lines[0]
+    IML_line = lines[1]
+    acceleration_line = lines[2]
+    
+    # Check the header to ensure the correct results are read
+    kind='rlz-'+rlz
+    openquake_header_checks(header_line,IMT,kind)
+    
+    # Parse the IML and acceleration values into numpy arrays
+    IMLs, accelerations = parse_openquake_hazard(IML_line, acceleration_line)
+    
+    return IMLs, accelerations
 
 #def read_mean_hazard_usgs2018(IMT, results_dir):
     
