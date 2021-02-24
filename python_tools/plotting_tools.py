@@ -113,7 +113,7 @@ def plot_fractile_curves(plot_parameters, results_dir, fractile_hazard_curves, r
     
     # Check that necessary parameters are present in plot_parameters
     required_parameters = ['output_format', 'IMTs_to_plot', 'IMT_labels', 
-                           'colour_map', 'figsize', 'legend_textwrap_limit', 
+                           'figsize', 'legend_textwrap_limit', 
                            'plotsave','savedir']
     if not all(parameter in plot_parameters for parameter in required_parameters):
         print('Some parameters are missing :', set(required_parameters) - plot_parameters.keys())
@@ -452,6 +452,21 @@ def plot_deaggregation(deag_results_filepath_dict,plot_parameters):
                             dpi=600,pad_inches=0.1,bbox_inches='tight')
 
 def plot_hazard_by_gmm(plot_parameters, trts, results_dir, return_periods):
+    '''
+    Plot hazard curves by gmm (and tectonic region type if applicable) for defined IMTs.
+
+    Parameters
+    ----------
+    plot_parameters : DICT
+        Dictionary with parameters for plot including the spectral periods to plot and plot aesthetics.
+    trts : DICT
+        Dictionary listing the tectonic region types represented by the gmms.
+        e.g. trts = {'gmms_trt1' : 'cratonic'}#, 'gmms_trt2' : 'non_cratonic'}
+    results_dir : STR
+        Directory filepath to the hazard calculation results.
+    return_periods : DICT
+        Dictionary with selected return periods (AEP) and associated parameters for plotting.
+    '''
     
     import os
     import sys
@@ -462,16 +477,14 @@ def plot_hazard_by_gmm(plot_parameters, trts, results_dir, return_periods):
     
     from misc_tools import make_gmm_label
 
-
     # Check that necessary parameters are present in plot_parameters
     required_parameters = ['output_format', 'IMTs_to_plot', 'IMT_labels', 
-                            'colour_map', 'figsize', 'legend_df_filepath', 
-                            'legend_textwrap_limit', 'plotsave','savedir']
+                            'colour_map', 'figsize', 'legend_textwrap_limit', 
+                            'plotsave','savedir']
     if not all(parameter in plot_parameters for parameter in required_parameters):
         print('Some parameters are missing :', set(required_parameters) - plot_parameters.keys())
         sys.exit()
         
-
     # Check that axes labels are correct
     if not plot_parameters['xlabel'].lower().startswith('acceleration') and plot_parameters['ylabel'].lower().startswith('annual exceedance probability'):
         print('Hazard Curves plot Annual Exceedance Probability against Acceleration. Axes labels are incorrect.')
@@ -479,8 +492,6 @@ def plot_hazard_by_gmm(plot_parameters, trts, results_dir, return_periods):
     elif 'PGA' in plot_parameters['x_tick_labels']:
         print('Hazard Curves plot Annual Exceedance Probability against Acceleration. X-Axis ticks are incorrect.')
         sys.exit()
-
-    
 
     # Plot results for each desired spectral period
     for IMT, IMT_label in zip(plot_parameters['IMTs_to_plot'], plot_parameters['IMT_labels']):
@@ -555,8 +566,13 @@ def plot_hazard_by_gmm(plot_parameters, trts, results_dir, return_periods):
                     plt.savefig(os.path.join(plot_parameters['savedir'], save_filename),
                                 format='PNG', dpi=600, bbox_inches='tight', pad_inches=0.1
                                 )
+        # elif plot_parameters['output_format'].lower() in ['opensha', 'open sha', 'usgs2018', 'usgs 2018', 'usgs18', 'usgs 18']:
+        #     IMLs, mean_accel = read_uhrs_usgs2018(IMT, results_dir)
+        # elif plot_parameters['output_format'].lower() in ['ezfrisk', 'ez-frisk', 'ez frisk']:
+        #     IMLs, mean_accel = read_uhrs_ezfrisk(IMT, results_dir)
 
-
+#def plot_hazard_by_source_model():
+    
 
 # General Plotting Routines
 
@@ -581,7 +597,7 @@ def ax_plot_annotation_and_styling(ax, plot_parameters):
     if not all(parameter in plot_parameters for parameter in required_parameters):
         print('Some parameters are missing :', set(required_parameters) - plot_parameters.keys())
         sys.exit()
-    optional_parameters = ['legend_title', 'legend_title_fontsize', 'legend_ftsize', 'legend_loc', 
+    optional_parameters = ['legend_title', 'legend_title_fontsize', 'legend_fontsize', 'legend_loc', 
                            'legend_borderpad', 'legend_labelspacing', 'legend_handlelength', 
                            'legend_ncol', 'legend_bbox_to_anchor']
     if not all(parameter in plot_parameters for parameter in optional_parameters):
@@ -634,9 +650,8 @@ def ax_plot_legend(ax, plot_parameters):
     for i,legend_parameter in enumerate(legend_parameters_present):
         if i==0:
             legend_entry = default_legend_entry
-        if legend_parameter.split('_')[1] in legend_entry:
+        if legend_parameter.replace('legend_','') in legend_entry:
             legend_entry = ', '.join([legend_master_dict[legend_parameter] if x.strip().startswith(legend_parameter.split('_')[1]) else x.strip() for x in legend_entry.split(',')]) +')'
-            print(legend_entry)
         else:
             legend_entry = legend_entry[:-1] + ', ' + legend_master_dict[legend_parameter] + ')'
             
