@@ -245,7 +245,7 @@ def plot_mean_uhrs_spectra(plot_parameters,results_dir, return_periods):
         IMTs, accelerations = [list(tuple) for tuple in  zip(*sorted_arrays)]
 
         # Plot lines
-        ax.loglog(IMTs, accelerations, label=fill('1:%s AEP' % yrp,plot_parameters['legend_textwrap_limit']), color=yrp_details[1], linewidth=3)
+        ax.loglog(IMTs, accelerations, label=fill('1:%s AEP' % str(yrp),plot_parameters['legend_textwrap_limit']), color=yrp_details[1], linewidth=3)
     
     # Annotate and style plot
     ax = ax_plot_annotation_and_styling(ax, plot_parameters)
@@ -253,7 +253,7 @@ def plot_mean_uhrs_spectra(plot_parameters,results_dir, return_periods):
     # Save figure
     if plot_parameters['plotsave']:
         plt.savefig(os.path.join(plot_parameters['savedir'], 
-                                 'mean_uhrs_' + '_'.join(return_periods.keys()) + '.png'),
+                                 'mean_uhrs_' + '_'.join([str(x) for x in return_periods.keys()]) + '.png'),
                     format='PNG', dpi=600, bbox_inches='tight', pad_inches=0.1
                     )
     
@@ -350,7 +350,7 @@ def plot_uhrs_by_return_period(plot_parameters,results_dir, return_periods, frac
         
         # Save figure
         if plot_parameters['plotsave']:
-            plt.savefig(os.path.join(plot_parameters['savedir'], 'uhrs_' + yrp + '.png'),
+            plt.savefig(os.path.join(plot_parameters['savedir'], 'uhrs_' + str(yrp) + '.png'),
                         format='PNG', dpi=600, bbox_inches='tight', pad_inches=0.1
                         )
     
