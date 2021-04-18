@@ -53,13 +53,13 @@ def create_epsilon_plot(df, plot_parameters):
     '''
     import numpy as np
     import pandas as pd
+    import sys
     
     epsilon_colours = plot_parameters['epsilon_colour_alpha_dictionary']
     unique_mags = np.unique(df.mag.to_numpy())
     unique_dists = np.unique(df.dist.to_numpy())
     
     total_summed_poe = sum([float(x) for x in df.poe.tolist()])
-
 
     df_epsilon_plot = pd.DataFrame(columns = ['mag','dist','eps_lower_bound','colour','poe'])
 
@@ -81,6 +81,9 @@ def create_epsilon_plot(df, plot_parameters):
                     new_row_list = [m,d,lower_bound,color, float(dftmp['poe'].sum())]
                 elif len(dftmp) == 1:
                     new_row_list = [m,d,lower_bound,color,float(dftmp['poe'].tolist()[0])]
+                else:
+                    print('Check that the epsilon colour dictionary matches the epsilon values from the calculation')
+                    sys.exit()
 
                 masterlist.append(new_row_list)
 
@@ -133,6 +136,7 @@ def create_deag_Z_grid(ax, plot_parameters, unique_mags,unique_dists,df_epsilon_
     mags_grid = []
     out = [mags_grid.append(unique_mags) for n in unique_dists]
     mags_grid_array = np.array(mags_grid).T
+    
 
     # make Z_grid for plotting
     Z_grid = np.zeros_like(dist_grid_array)

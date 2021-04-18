@@ -23,9 +23,28 @@ def parse_openquake_hazard(IML_line,acceleration_line):
 
     '''
     import numpy as np
+    from misc_tools import poe2yrp
     
     IMLs = np.asarray([float(x.replace('poe-','')) for x in IML_line.split(',')[3:]])
-    accelerations = np.asarray([float(x) for x in acceleration_line.split(',')[3:]])
+        ### change made by Jie 03/31/2021
+    # yrp_list = poe2yrp(IMLs,50)
+    
+    
+    ### change made by Jie 03/31/2021
+    
+    # accelerations = np.asarray([float(x) for x in acceleration_line.split(',')[3:]])
+    accelerations = [float(x) for x in acceleration_line.split(',')[3:]]
+    
+    # remove "0" values if exist
+    if accelerations[len(accelerations)-1] == 0.0:
+        index = accelerations.index(0.0)
+        index_2 = len(accelerations)
+        del accelerations[index:index_2]
+        IMLs = np.delete(IMLs,range(index,index_2))
+        
+    yrp_list = poe2yrp(accelerations,50)
+    accelerations = 1/np.asarray(yrp_list)
+    ###
     
     return IMLs, accelerations
 

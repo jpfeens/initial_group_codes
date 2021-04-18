@@ -389,7 +389,9 @@ def plot_deaggregation(deag_results_filepath_dict,plot_parameters):
                 else:
                     clean_IMT = IMT.replace('SA(','').replace(')','')
                 return_period = [k for k,v in plot_parameters['yrps'].items() if v[0] == return_period]#[0]
-                print(return_period)
+                if len(return_period) == 1:
+                    return_period = return_period[0]
+                #print(return_period)
                     
             # USGS2018 or OpenSHA format
             if plot_parameters['output_format'].lower() in ['opensha', 'open sha', 'usgs2018', 
@@ -422,9 +424,6 @@ def plot_deaggregation(deag_results_filepath_dict,plot_parameters):
                 if (1-(total_summed_poe/original_summed_poe)) > 0.03:
                     print('WARNING:', (1-(total_summed_poe/original_summed_poe))*100, 
                           '% of the hazard lies outside the plotted area.\nAdjust xlim and ylim as needed.\n')
-        
-            unique_mags.sort()
-            unique_dists.sort()
             
             # set up the figure
             fig, ax = deag_fig_set_up(plot_parameters)
@@ -438,6 +437,7 @@ def plot_deaggregation(deag_results_filepath_dict,plot_parameters):
             ax.set_ylabel(plot_parameters['ylabel'], fontsize=plot_parameters['fontsize'], labelpad=15)
             ax.set_zlabel(plot_parameters['zlabel'], fontsize=plot_parameters['fontsize'], labelpad=15)
             legend_elements = build_deag_legend(plot_parameters['epsilon_colour_alpha_dictionary'])
+
             if IMT == 'PGA':
                 legend_title = 'Deaggregation for 1:'+ return_period+' AEP at ' + clean_IMT
             else:
@@ -531,7 +531,10 @@ def plot_hazard_by_gmm(plot_parameters, trts, results_dir, return_periods):
                 for gmm in gmm_IMLs[gmm_col].keys():
                     df_this_gmm = df_realisation.loc[df_realisation[gmm_col] == gmm]
 
-                    gmm_label = fill(make_gmm_label(gmm), plot_parameters['legend_textwrap_limit'])
+                    if plot_parameters['NGA-East']:
+                        gmm_label = fill(gmm.replace('_',' '), plot_parameters['legend_textwrap_limit'])
+                    else:
+                        gmm_label = fill(make_gmm_label(gmm), plot_parameters['legend_textwrap_limit'])
                     accelerations_allRLZ = []
                     for rlz in df_this_gmm['rlz_id'].tolist():
                         df_this_rlz = df_this_gmm.loc[df_this_gmm['rlz_id'] == rlz]
@@ -552,7 +555,7 @@ def plot_hazard_by_gmm(plot_parameters, trts, results_dir, return_periods):
         
                 # Plot the mean hazard from all sources
                 IMLs_mean, accelerations_mean = read_mean_hazard_openquake(IMT, results_dir, plot_parameters['OQrunnum'])
-                ax.loglog(IMLs_mean,accelerations_mean, label = fill('Mean from all GMMs',plot_parameters['legend_textwrap_limit']), color='k', linewidth=2)
+                ax.loglog(IMLs_mean,accelerations_mean, label = fill('Mean from all GMMs',plot_parameters['legend_textwrap_limit']), color='k', linewidth=3)
 
                 # Plot selected YRP
                 ax = ax_plot_YRPs(ax, plot_parameters, return_periods)
@@ -730,6 +733,7 @@ def deag_fig_set_up(plot_parameters):
 
     '''
     import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
     import sys
     # Check that the necessary parameters are in plot_parameters
     required_parameters = ['figsize','xlim','ylim','zlim','xticks','yticks','zticks','ftsize']
@@ -755,6 +759,7 @@ def deag_fig_set_up(plot_parameters):
     ax.set_zticklabels(plot_parameters['zticks'], fontsize = plot_parameters['ftsize'])
 
     ax.view_init(ax.elev, ax.azim+10)
+    #ax.view_init(ax.elev-10, ax.azim+90)
     
     return fig, ax
 
@@ -778,7 +783,7 @@ def build_deag_legend(data):
     legend_elements = []
     eps_bin_size = list(data.keys())[1] - list(data.keys())[0]
     for i, (key,value) in enumerate(data.items()):
-        eps_range_label = str(key)+'≥ ε <'+str(key+eps_bin_size)
+        eps_range_label = str(key)+'≤ ε <'+str(key+eps_bin_size)
         legend_elements.append(Line2D([0], [0], marker='s', color='w', 
                                       label=eps_range_label, 
                                       markerfacecolor=value, markersize=16))

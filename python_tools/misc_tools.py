@@ -128,7 +128,7 @@ def read_openquake_source_model_input(source_model_input_filepath):
     
     return df_source_model
 
-def read_openquake_gmm_input(gmm_input_filepath, trts):
+def read_openquake_gmm_input(gmm_input_filepath, trts,v='3.10'):
     '''
     Parse OpenQuake ground motion model input file and put information in a dataframe
 
@@ -151,7 +151,7 @@ def read_openquake_gmm_input(gmm_input_filepath, trts):
     import sys
     
     # Add to this list as we expand OpenQuake capabilities with subduction zones
-    acceptable_trts = ['cratonic','non_cratonic']
+    acceptable_trts = ['cratonic','non_cratonic','Stable Shallow Crust']
     for k,v in trts.items():
         if not k.startswith('gmms_trt'):
             print('trts keys must start with `gmms_trt`, followed by a number')
@@ -314,6 +314,12 @@ def parse_openquake_job_ini_file(job_input_filepath):
             investigation_time = int(float(data[linenum].split('=')[1].strip()))
         elif data[linenum].startswith('poes'):
             return_periods = sorted(list(data[linenum].split('=')[1].strip().replace(',','').split(' ')),reverse=True)
+    
+    # If no fractiles are defined, set fractiles as 'mean' only
+    try:
+        fractiles
+    except NameError:
+        fractiles = ['mean']   
 
     #Clean up IMTs
     if len(IMTs_tmp) == 1:
@@ -345,7 +351,6 @@ def make_gmm_label(string_to_parse):
 
     '''
     import re
-    
     words_or_numbers = re.findall('([A-Z][a-z]*)(\d+)*', string_to_parse)
     words_or_numbers = [item if item != '' else 'and' for sublist in words_or_numbers for item in sublist]
     return ' '.join(words_or_numbers)
