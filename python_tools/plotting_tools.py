@@ -541,7 +541,7 @@ def plot_hazard_by_gmm(plot_parameters, trts, results_dir, return_periods):
         
                 # Plot the mean hazard from all sources
                 IMLs_mean, accelerations_mean = read_mean_hazard_openquake(IMT, results_dir, plot_parameters['OQrunnum'])
-                ax.loglog(IMLs_mean,accelerations_mean, label = fill('Mean from all GMMs',plot_parameters['legend_textwrap_limit']), color='k', linewidth=2)
+                ax.loglog(IMLs_mean,accelerations_mean, label = fill('Mean from all GMMs',plot_parameters['legend_textwrap_limit']), color='k', linewidth=3)
 
                 # Plot selected YRP
                 ax = ax_plot_YRPs(ax, plot_parameters, return_periods)
@@ -556,6 +556,95 @@ def plot_hazard_by_gmm(plot_parameters, trts, results_dir, return_periods):
                                 format='PNG', dpi=600, bbox_inches='tight', pad_inches=0.1
                                 )
 
+def plot_hazard_by_source(plot_parameters, haz_by_source_topdir, results_dir, return_periods):
+    '''
+    
+
+    Parameters
+    ----------
+    plot_parameters : DICT
+        Dictionary with parameters for plot including the spectral periods to plot and plot aesthetics.
+    haz_by_source_topdir : STR
+        Path to the top level directory containing the hazard output files for each source. This file
+        contains folders called 'source_XXX/results' where XXX is the source id that contain OQ outputs.
+    results_dir : STR
+        File path to results files ready for plotting.
+    return_periods : DICT
+        Dictionary with selected return periods (AEP) and associated parameters for plotting.
+    '''
+    import os
+    import sys
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from cycler import cycler
+    from textwrap import fill
+    
+     # Check that necessary parameters are present in plot_parameters
+    required_parameters = ['output_format', 'IMTs_to_plot', 'IMT_labels', 
+                            'colour_map', 'figsize', 'legend_textwrap_limit', 
+                            'plotsave','savedir']
+    if not all(parameter in plot_parameters for parameter in required_parameters):
+        print('Some parameters are missing :', set(required_parameters) - plot_parameters.keys())
+        sys.exit()
+        
+
+    # Check that axes labels are correct
+    if not plot_parameters['xlabel'].lower().startswith('acceleration') and plot_parameters['ylabel'].lower().startswith('annual exceedance probability'):
+        print('Hazard Curves plot Annual Exceedance Probability against Acceleration. Axes labels are incorrect.')
+        sys.exit()
+    elif 'PGA' in plot_parameters['x_tick_labels']:
+        print('Hazard Curves plot Annual Exceedance Probability against Acceleration. X-Axis ticks are incorrect.')
+        sys.exit()
+    
+    # Plot results for each desired spectral period
+    for IMT, IMT_label in zip(plot_parameters['IMTs_to_plot'], plot_parameters['IMT_labels']):
+
+        # Read data for plotting based on output type
+        if plot_parameters['output_format'].lower() in ['openquake', 'open quake', 'oq']:
+            from hazard_curve_tools import read_mean_hazard_openquake
+            
+            #Check that openquake specific parameters are present in plot_parameters
+            oq_parameters = ['OQrunnum', 'source_details']
+            if not all(parameter in plot_parameters for parameter in oq_parameters):
+                print('Some openquake parameters are missing : ', 
+                      set(oq_parameters) - plot_parameters.keys())
+                sys.exit()
+
+            # Set up colour cycler
+            #color_cycler = cycler('color', [plt.get_cmap(plot_parameters['colour_map'])(i/len(gmm_cols)) for i in range(len(gmm_cols))])
+            color_cycler = cycler('color', [plt.get_cmap(plot_parameters['colour_map'])(i/len(plot_parameters['source_details'])) for i in range(len(plot_parameters['source_details']))])
+            plt.rc('axes', prop_cycle=color_cycler)
+            
+            
+            # Set up figure
+            fig, ax = plt.subplots(figsize=plot_parameters['figsize'])
+            
+            # Loop through the individual sources
+            for source_id,source_info in plot_parameters['source_details'].items():
+                source_results_dir = os.path.join(haz_by_source_topdir,'source_'+source_id,'results')
+                source_oq_runnum = source_info[0]
+                source_label = source_info[1]
+                
+                IMLs, accelerations = read_mean_hazard_openquake(IMT, source_results_dir, source_oq_runnum)
+                
+                ax.loglog(IMLs,accelerations,label=source_label,lw=2)
+                
+            # Plot mean hazard from all sources
+            totalmean_IMLs, totalmean_accelerations = read_mean_hazard_openquake(IMT, results_dir, plot_parameters['OQrunnum'])
+            ax.loglog(totalmean_IMLs, totalmean_accelerations,label='Mean hazard from all sources',color='k',lw=3)
+                
+            # Plot selected YRP
+            ax = ax_plot_YRPs(ax, plot_parameters, return_periods)
+        
+            # Annotate and style plot
+            ax = ax_plot_annotation_and_styling(ax, plot_parameters)
+        
+            # Save figure
+            if plot_parameters['plotsave']:
+                save_filename = 'Mean_hazard_by_source_' + IMT + '.png'
+                plt.savefig(os.path.join(plot_parameters['savedir'], save_filename),
+                            format='PNG', dpi=600, bbox_inches='tight', pad_inches=0.1
+                            )
 
 
 # General Plotting Routines
