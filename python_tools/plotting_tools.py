@@ -179,7 +179,7 @@ def plot_fractile_curves(plot_parameters, results_dir, fractile_hazard_curves, r
                     format='PNG', dpi=600, bbox_inches='tight', pad_inches=0.1
                     )
 
-def plot_mean_uhrs_spectra(plot_parameters,results_dir, return_periods):
+def plot_mean_uhrs_spectra(plot_parameters,results_dir, return_periods,return_fig_ax=False):
     '''
     Plot mean uhrs for all return periods
 
@@ -245,7 +245,7 @@ def plot_mean_uhrs_spectra(plot_parameters,results_dir, return_periods):
         IMTs, accelerations = [list(tuple) for tuple in  zip(*sorted_arrays)]
 
         # Plot lines
-        ax.loglog(IMTs, accelerations, label=fill('1:%s AEP' % str(yrp),plot_parameters['legend_textwrap_limit']), color=yrp_details[1], linewidth=3)
+        ax.loglog(IMTs, accelerations, label=fill('1/%s AEP' % str(yrp),plot_parameters['legend_textwrap_limit']), color=yrp_details[1], linewidth=3)
     
     # Annotate and style plot
     ax = ax_plot_annotation_and_styling(ax, plot_parameters)
@@ -256,6 +256,10 @@ def plot_mean_uhrs_spectra(plot_parameters,results_dir, return_periods):
                                  'mean_uhrs_' + '_'.join([str(x) for x in return_periods.keys()]) + '.png'),
                     format='PNG', dpi=600, bbox_inches='tight', pad_inches=0.1
                     )
+    
+    #Return fig and ax if return_fig_ax is True
+    if return_fig_ax:
+        return fig,ax
     
 def plot_uhrs_by_return_period(plot_parameters,results_dir, return_periods, fractile_hazard_curves):
     '''
@@ -439,16 +443,16 @@ def plot_deaggregation(deag_results_filepath_dict,plot_parameters):
             legend_elements = build_deag_legend(plot_parameters['epsilon_colour_alpha_dictionary'])
 
             if IMT == 'PGA':
-                legend_title = 'Deaggregation for 1:'+ return_period+' AEP at ' + clean_IMT
+                legend_title = 'Deaggregation for 1:'+ str(return_period)+' AEP at ' + clean_IMT
             else:
-                legend_title = 'Deaggregation for 1:'+ return_period+' AEP at ' + clean_IMT + ' s'
+                legend_title = 'Deaggregation for 1:'+ str(return_period)+' AEP at ' + clean_IMT + ' s'
             
             ax.legend(handles=legend_elements[::-1], ncol = plot_parameters['legend_ncol'], loc=plot_parameters['legend_loc'],
                       fontsize=plot_parameters['legend_fontsize'], title= legend_title, 
                       title_fontsize=plot_parameters['legend_fontsize']+2)
         
             if plot_parameters['plotsave']:
-                plt.savefig(os.path.join(plot_parameters['savedir'],'deagg_' + IMT + '_' + return_period + '.png'), 
+                plt.savefig(os.path.join(plot_parameters['savedir'],'deagg_' + IMT + '_' + str(return_period) + '.png'), 
                             dpi=600,pad_inches=0.1,bbox_inches='tight')
 
 def plot_hazard_by_gmm(plot_parameters, trts, results_dir, return_periods):
@@ -510,8 +514,8 @@ def plot_hazard_by_gmm(plot_parameters, trts, results_dir, return_periods):
             
             # Loop through the different gmm tectonic region types
             gmm_cols = [x for x in df_realisation.columns.tolist() 
-                        for trt in list(trts.values()) if x == trt+'_gmms']
-            
+                        for trt in list(trts.values()) if x == trt.lower()+'_gmms']
+
             # Set up results dictionary
             gmm_IMLs = dict.fromkeys(gmm_cols)
             for gmm_col in gmm_cols:

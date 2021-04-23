@@ -128,7 +128,7 @@ def read_openquake_source_model_input(source_model_input_filepath):
     
     return df_source_model
 
-def read_openquake_gmm_input(gmm_input_filepath, trts,v='3.10'):
+def read_openquake_gmm_input(gmm_input_filepath, trts):
     '''
     Parse OpenQuake ground motion model input file and put information in a dataframe
 
@@ -151,13 +151,13 @@ def read_openquake_gmm_input(gmm_input_filepath, trts,v='3.10'):
     import sys
     
     # Add to this list as we expand OpenQuake capabilities with subduction zones
-    acceptable_trts = ['cratonic','non_cratonic','Stable Shallow Crust']
+    acceptable_trts = ['cratonic','non_cratonic','stable shallow crust']
     for k,v in trts.items():
         if not k.startswith('gmms_trt'):
             print('trts keys must start with `gmms_trt`, followed by a number')
             sys.exit()
-        if v not in acceptable_trts:
-            print(v,'is not a currently supported trt.\nCurrently supported trts:',acceptable_trts)
+        if v.lower() not in acceptable_trts:
+            print(v.lower(),'is not a currently supported trt.\nCurrently supported trts:',acceptable_trts)
             sys.exit()
         
     
@@ -173,10 +173,10 @@ def read_openquake_gmm_input(gmm_input_filepath, trts,v='3.10'):
     for linenum in range(len(data)):
         if 'applyToTectonicRegionType=' in data[linenum]:
             trts_indices_start.append(linenum)
-            all_trts.append(data[linenum].split('"')[1].lower())
+            all_trts.append(data[linenum].split('"')[1])
         if '</logicTreeBranchSet>' in data[linenum]:
             trts_indices_end_all.append(linenum)
-    
+
     trts_indices_end_all = np.asarray(trts_indices_end_all)
     trts_indices_end = []
     #Clean up end lines that don't correspond with start lines
@@ -187,13 +187,18 @@ def read_openquake_gmm_input(gmm_input_filepath, trts,v='3.10'):
     else:
         trts_indices_end = trts_indices_end_all
 
-   
     # Only keep the tectonic region types applicable to this site
-    keep_trts_inds = [(trts_indices_start[i],trts_indices_end[i]) for i,x in enumerate(all_trts) if x.lower() in trts.values()]
+    keep_trts_inds = [(trts_indices_start[i],trts_indices_end[i]) for i,x in enumerate(all_trts) if x.title() in trts.values()]
+    
     
     gmm_tectonic_region = []
     gmm_name = []
     gmm_weight = []
+    imtk = []
+    imtv = []
+    imts_and_weights = []
+    
+    ngaeast=False
     
     for i,trt_ind_range in enumerate(keep_trts_inds):
         count = 0
@@ -203,18 +208,35 @@ def read_openquake_gmm_input(gmm_input_filepath, trts,v='3.10'):
         #print('working on',tr,'GMMs from lines',start_i,end_i)
         for line in data[start_i:end_i]:
             if  'uncertaintyModel' in line:
-                gmmn = line.split('</')[0].split('>')[1]
-                gmm_name.append(gmmn)
+                if 'gmpe_table=' in line:
+                    gmmn = line.split('gmpe_table=')[1].split('>')[0].replace('"','')
+                    gmm_name.append(gmmn)
+                else:
+                    gmmn = line.split('</')[0].split('>')[1]
+                    gmm_name.append(gmmn)
                 count = count +1
             if  'uncertaintyWeight' in line:
-                gmmw = line.split('</')[0].split('>')[1]
-                gmm_weight.append(gmmw)
+                if 'imt=' in line:
+                    ngaeast=True
+                    imtk.append(line.split('imt=')[1].split('>')[0])
+                    imtv.append(line.split('</')[0].split('>')[1])
+                else:
+                    gmmw = line.split('</')[0].split('>')[1]
+                    gmm_weight.append(gmmw)
+            if '</logicTreeBranch>' in line:
+                if ngaeast:
+                    imts_and_weights.append(dict(zip(imtk,imtv)))
+                else:
+                    pass
+
         gmm_tr_tmp = [tr]*count
         gmm_tectonic_region.append(gmm_tr_tmp)
     
     df_gmm_logic_tree['tectonic_region'] = [item for sublist in gmm_tectonic_region for item in sublist]
     df_gmm_logic_tree['gmm_name'] = gmm_name
     df_gmm_logic_tree['gmm_weight'] = np.asarray([float(x) for x in gmm_weight]).astype('float32')
+    if ngaeast:
+        df_gmm_logic_tree['imts_and_weights'] = imts_and_weights
     
     return df_gmm_logic_tree
 
@@ -243,6 +265,7 @@ def format_openquake_realization_output(realisation_output_filepath):
     # e.g. separate cratonic gmms from non-cratonic gmms from subduction gmms
     tmp_branch_path = df_realisation.loc[0,'branch_path']
     num_trts = len(tmp_branch_path.split('~')[1].split('_'))
+    num_logictree_nodes = len(tmp_branch_path.split('~')[0])
     
     if num_trts == 0:
         print('No GMMs listed in realization branch path.')
@@ -252,9 +275,17 @@ def format_openquake_realization_output(realisation_output_filepath):
 
     for i,gmm_colname in enumerate(gmm_colnames):
         df_realisation[gmm_colname] = [x.split('~')[1].split('_')[i] for x in df_realisation['branch_path'].tolist()]
+        
+    if num_logictree_nodes == 0:
+        print('No source models listed in realization branch path.')
+        sys.exit()
+    elif num_logictree_nodes == 1:
+        print('There is one source model logic tree node.')
+    else:
+        print('There are multiple source model logic tree nodes. Plotting hazard by source from this calculated is not yet supported.')
     
     df_realisation['branch_path'] = [x.split('~')[0] for x in df_realisation['branch_path'].tolist()]
-    df_realisation.rename(columns={'weight': 'rlz_weight', 'branch_path' : 'source_model_branch_path'},inplace=True)
+    df_realisation.rename(columns={'weight': 'rlz_weight', 'branch_path' : 'source_model_branch_node'},inplace=True)
     
     # Check that the realisation weights sum to 1
     rlz_weights = df_realisation['rlz_weight'].to_numpy()
@@ -266,9 +297,10 @@ def format_openquake_realization_output(realisation_output_filepath):
     return df_realisation, num_trts
 
 def rename_openquake_realisation_df_cols(df_realisation, num_trts, trts):
+    import sys
     trts_colnames = dict.fromkeys(trts.keys())
     for trt_num,trt in trts.items():
-        trts_colnames[trt_num] = trt+'_gmms'
+        trts_colnames[trt_num] = trt.lower()+'_gmms'
     
     if num_trts != len(trts):
         print("The number of output tectonic region types",num_trts,"doesn't match the number of input tectonic region types",len(trts),'.')
@@ -321,9 +353,11 @@ def parse_openquake_job_ini_file(job_input_filepath):
     except NameError:
         fractiles = ['mean']   
 
+
     #Clean up IMTs
     if len(IMTs_tmp) == 1:
-        IMTs = list(dict(IMTs_tmp.split('=')[1].strip().strip('"')).keys())
+        IMTs = list(eval(IMTs_tmp[0].split('=')[1].strip()).keys())
+        print(IMTs)
     else:
         IMTs=[]
         for imt_line in IMTs_tmp: 
