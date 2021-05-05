@@ -25,7 +25,7 @@ def yrp2poe(yrp_list, investigation_time):
     import numpy as np
     
     poe_list = list(np.around(-np.expm1(-investigation_time / np.asarray(yrp_list)),decimals=5))
-    
+       
     return poe_list
 
 def poe2yrp(poe_list, investigation_time):
