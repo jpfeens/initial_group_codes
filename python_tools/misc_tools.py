@@ -388,3 +388,44 @@ def make_gmm_label(string_to_parse):
     words_or_numbers = re.findall('([A-Z][a-z]*)(\d+)*', string_to_parse)
     words_or_numbers = [item if item != '' else 'and' for sublist in words_or_numbers for item in sublist]
     return ' '.join(words_or_numbers)
+
+def compute_dist_to_site(df, site_loc,azimuth=False):
+    '''
+    Compute the distance between lists of lat/lon coords and site coords
+
+    Parameters
+    ----------
+    df : PANDAS DATAFRAME
+        DataFrame containing earthquake event data including columns titled 'latitude' and 'longitude'.
+    site_loc : LIST
+        List containing the site latitude and longitude. e.g. [-21.858586, -46.581380]
+    azimuth : BOOL, optional
+        If True, function returns site_az with the azimuths of each event from the site. 
+        The default is False.
+
+    Returns
+    -------
+    site_dist : LIST
+        List containing the distance between the site and each event in df in kilometres.
+
+    '''
+    import numpy as np
+    from obspy.geodetics import gps2dist_azimuth
+    lats = df['latitude'].to_list()
+    lons = df['longitude'].to_list()
+    site_dist = []
+    site_az = []
+
+    for lat,lon in zip(lats,lons):
+        D,A,B = gps2dist_azimuth(lat,lon,site_loc[0],site_loc[1]) #D is in metres
+        #list distances from site in km
+        site_dist.append(np.around(D/1000, decimals=3)) # site_dist is now in kilometres
+        
+        if azimuth:
+            site_az.append(np.around(np.asarray(A)),decimals=0)
+            
+    if azimuth:
+        return site_dist, site_az
+    else:
+        return site_dist
+
