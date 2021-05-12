@@ -25,7 +25,7 @@ def yrp2poe(yrp_list, investigation_time):
     import numpy as np
     
     poe_list = list(np.around(-np.expm1(-investigation_time / np.asarray(yrp_list)),decimals=5))
-    
+       
     return poe_list
 
 def poe2yrp(poe_list, investigation_time):
@@ -428,4 +428,3 @@ def compute_dist_to_site(df, site_loc,azimuth=False):
         return site_dist, site_az
     else:
         return site_dist
-
