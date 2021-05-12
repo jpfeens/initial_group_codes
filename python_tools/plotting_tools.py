@@ -668,6 +668,125 @@ def plot_hazard_by_source(plot_parameters, haz_by_source_topdir, results_dir, re
                             format='PNG', dpi=600, bbox_inches='tight', pad_inches=0.1
                             )
 
+# def tornado_plots_by_return_period(plot_parameters,sensitivity_topdir,results_dir, return_periods):
+
+#     import os
+#     import sys
+#     import matplotlib.pyplot as plt
+#     import numpy as np
+#     from cycler import cycler
+#     from textwrap import fill
+    
+    
+#     # Read data for plotting based on output type
+#     if plot_parameters['output_format'].lower() in ['openquake', 'open quake', 'oq']:
+#         from hazard_curve_tools import read_mean_hazard_openquake
+        
+#         #Check that openquake specific parameters are present in plot_parameters
+#         oq_parameters = ['OQrunnum','sensitivity_details']
+#         if not all(parameter in plot_parameters for parameter in oq_parameters):
+#             print('Some openquake parameters are missing : ', 
+#                   set(oq_parameters) - plot_parameters.keys())
+#             sys.exit()
+    
+    
+#     # Loop through return period
+#     for yrp, yrp_details in return_periods.items():
+#         yrp_decimal = yrp_details[0]
+        
+#         # Plot results for each desired spectral period
+#         for IMT, IMT_label in zip(plot_parameters['IMTs_to_plot'], plot_parameters['IMT_labels']):
+            
+#             IMT_label = IMT_label.replace(' s','')
+            
+#             # set up plot
+#             fig = plt.figure(facecolor='white', figsize=(10, 5))
+#             ax = plt.axes()
+#             ax.get_xaxis().tick_bottom()
+#             ax.axes.get_yaxis().set_visible(False)
+#             ax.set_xlim([-0.32,0.8])
+#             ax.set_ylim([0,8.5])
+#             ax.set_title('POE ' + yrp_decimal + ', Period ' + IMT_label)
+#             ax.set_xlabel('Acceleration (g)')
+        
+            
+#             #plot mean
+#             totalmean_IMLs, totalmean_accelerations = read_mean_hazard_openquake(IMT, results_dir, plot_parameters['OQrunnum'])
+#             mean_folder = results_dir
+#             uhs_file = glob.glob(os.path.join(results_dir, '*uhs-mean_*'))
+#             uhs_data = pd.read_csv(uhs_file[0])
+#             uhs_data.columns = uhs_data.iloc[0]
+    
+#             if IMT == 'PGA':
+#                     uhs_key = yrp_decimal + '~' + IMT_label
+#             else:
+#                     uhs_key = yrp_decimal + '~SA(' + IMT_label + ')'
+#             ax.plot([float(uhs_data[uhs_key][1]), float(uhs_data[uhs_key][1])],[0, 8], 'black')
+            
+#             plot_y = 2
+#             #plot branches
+#             for branches_i in branches.keys():
+#                     plot_y = plot_y +2
+#                     if branches_i == 'b':
+#                             ax.text(-0.3, plot_y, 'Recurrence Parameters', weight='bold')
+#                     elif branches_i == 'gmm':
+#                             ax.text(-0.3, plot_y, 'GMM', weight='bold')
+#                     elif branches_i == 'Mmax':
+#                             ax.text(-0.3, plot_y, 'Maximum Magnitude', weight='bold')
+                    
+#                     all_nodes = []
+#                     for sub_branch_i in branches[branches_i]:
+                            
+#                             if branches_i == 'gmm':
+#                                     #get the branch folder
+#                                     branch_folder = os.path.join(working_folder, 'tornado_' + branches_i, sub_branch_i)
+#                                     all_nodes = []
+#                                     color_cycler = cycler('color', [plt.get_cmap(plot_parameters['colour_map'])(i/17) for i in range(17)])
+#                                     plt.rc('axes', prop_cycle=color_cycler)
+#                                     for uhs_file in glob.glob(os.path.join(branch_folder, '*')):
+#                                             uhs_data = pd.read_csv(uhs_file)
+#                                             uhs_data.columns = uhs_data.iloc[0]
+#                                             if IMT == 'PGA':
+#                                                     uhs_key = yrp_decimal + '~' + IMT_label
+#                                             else:
+#                                                     uhs_key = yrp_decimal + '~SA(' + IMT_label + ')'
+                                            
+
+#                                             ax.scatter(float(uhs_data[uhs_key][1]), plot_y, facecolors='none', edgecolors='black')
+#                                             all_nodes.append(float(uhs_data[uhs_key][1]))
+                                    
+                                            
+                                    
+#                             else:                                
+#                                     #get the branch folder
+#                                     branch_folder = os.path.join(working_folder, 'tornado_' + branches_i, sub_branch_i, 'results')
+                    
+#                                     color_cycler = cycler('color', [plt.get_cmap(plot_parameters['colour_map'])(i/len(branches[branches_i])) for i in range(len(branches[branches_i])])
+#                                     plt.rc('axes', prop_cycle=color_cycler)
+                                    
+#                                     uhs_file = glob.glob(os.path.join(branch_folder, '*uhs-mean_*'))
+#                                     uhs_data = pd.read_csv(uhs_file[0])
+#                                     uhs_data.columns = uhs_data.iloc[0]
+                            
+#                                     if IMT == 'PGA':
+#                                             uhs_key = yrp_decimal + '~' + IMT
+#                                     else:
+#                                             uhs_key = yrp_decimal + '~SA(' + IMT + ')'
+#                                     if branches_i == 'Mmax':
+#                                         symbol = 's'
+#                                     elif branches_i == 'b':
+#                                         symbol = '^'
+#                                     ax.scatter(float(uhs_data[uhs_key][1]), plot_y, marker = symbol)#facecolors='none', edgecolors='black')
+#                                     all_nodes.append(float(uhs_data[uhs_key][1]))
+#                     ax.plot([min(all_nodes), max(all_nodes)], [plot_y, plot_y], 'black')
+                    
+#                     plt.savefig(os.path.join(output_folder, 'POE' + yrp_decimal + '_Period ' + IMT_label + '.png'))
+        
+
+
+    
+# def tornado_plots_by_imt():
+
 
 # General Plotting Routines
 

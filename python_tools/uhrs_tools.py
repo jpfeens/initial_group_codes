@@ -5,17 +5,21 @@ Created on Wed Jan 13 12:44:25 2021
 @author: ErTodd
 """
 
-def read_uhrs_openquake(mean_or_fractile, filename_prefix, results_dir, OQrunnum):
+def read_uhrs_openquake(mean_rlz_or_fractile, filename_prefix, results_dir, OQrunnum):
     '''
     Find, read, and parse the uniform hazard response specrtum results from 
     OpenQuake for a given return period. OpenQuake fractile hazard output is 
-    in a file called 'hazard_uhs-mean_OQrunnum.csv', 
-    'hazard_uhs-rlz-XXX_OQrunnum.csv', or 'quantile_uhs-FRACTILE_OQrunnum.csv'.
+    in a file called 'hazard_uhs-mean_OQrunnum.csv', 'hazard_uhs-rlz-XXX_OQrunnum.csv',
+    or 'quantile_uhs-FRACTILE_OQrunnum.csv'.
 
     Parameters
     ----------
-    yrp_decimal : STR
-        Annual exceedence probability (AEP) for the selected return period in decimal form.
+    mean_rlz_or_fractile : STR
+        String containing 'mean', the rlz number (i.e. '005'), or the decimal 
+        form of a fractile (i.e. '0.05' for 5th fractile).
+    filename_prefix : STR
+        String containing 'hazard_uhs', 'hazard_uhs-rlz', or 'quantile_uhs' 
+        depending on the type of file to be parsed.
     results_dir : STR
          Directory containing OpenQuake mean hazard result files.
     OQrunnum : STR
@@ -32,7 +36,7 @@ def read_uhrs_openquake(mean_or_fractile, filename_prefix, results_dir, OQrunnum
     
     from misc_tools import openquake_header_checks
     
-    filename = filename_prefix +'-' + mean_or_fractile + '_' + OQrunnum + '.csv'
+    filename = filename_prefix +'-' + mean_rlz_or_fractile + '_' + OQrunnum + '.csv'
     filepath = os.path.join(results_dir,filename)
     
     if not os.path.exists(filepath):
@@ -49,11 +53,18 @@ def read_uhrs_openquake(mean_or_fractile, filename_prefix, results_dir, OQrunnum
     acceleration_line = lines[2].strip()
     
     # Check the header to ensure the correct results are read
-    if mean_or_fractile == 'mean':
+    if mean_rlz_or_fractile == 'mean':
         kind='mean'
+        openquake_header_checks(header_line,'uhrs',kind)
+    elif mean_rlz_or_fractile.isdigit() == True:
+        kind='rlz-'+ mean_rlz_or_fractile
+        openquake_header_checks(header_line,'uhrs',kind)
+    elif float(mean_rlz_or_fractile)<1:
+        kind='quantile-' + mean_rlz_or_fractile
+        openquake_header_checks(header_line,'uhrs',kind)
     else:
-        kind='quantile-' + mean_or_fractile
-    openquake_header_checks(header_line,'uhrs',kind)
+        print('mean_rlz_or_fractile must be a string containing "mean", the rlz number (i.e. "005"), or the decimal form of a fractile (i.e. "0.05" for 5th fractile).')
+        sys.exit()
     
     # Parse the uhrs results into a dataframe 
     # Columns = return periods; Indices = IMTs
@@ -67,3 +78,4 @@ def read_uhrs_openquake(mean_or_fractile, filename_prefix, results_dir, OQrunnum
         df.at[ind,col] = acceleration
         
     return df
+

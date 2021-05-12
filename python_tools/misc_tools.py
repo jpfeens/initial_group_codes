@@ -151,7 +151,7 @@ def read_openquake_gmm_input(gmm_input_filepath, trts):
     import sys
     
     # Add to this list as we expand OpenQuake capabilities with subduction zones
-    acceptable_trts = ['cratonic','non_cratonic','stable shallow crust']
+    acceptable_trts = ['cratonic','non_cratonic','stable shallow crust','interface','shallow_crustal','inslab']
     for k,v in trts.items():
         if not k.startswith('gmms_trt'):
             print('trts keys must start with `gmms_trt`, followed by a number')
@@ -179,6 +179,7 @@ def read_openquake_gmm_input(gmm_input_filepath, trts):
 
     trts_indices_end_all = np.asarray(trts_indices_end_all)
     trts_indices_end = []
+
     #Clean up end lines that don't correspond with start lines
     if len(trts_indices_end_all) != len(trts_indices_start):
         for i,s in enumerate(trts_indices_start):
@@ -188,8 +189,7 @@ def read_openquake_gmm_input(gmm_input_filepath, trts):
         trts_indices_end = trts_indices_end_all
 
     # Only keep the tectonic region types applicable to this site
-    keep_trts_inds = [(trts_indices_start[i],trts_indices_end[i]) for i,x in enumerate(all_trts) if x.title() in trts.values()]
-    
+    keep_trts_inds = [(trts_indices_start[i],trts_indices_end[i]) for i,x in enumerate(all_trts) if x.lower() in trts.values()]
     
     gmm_tectonic_region = []
     gmm_name = []
