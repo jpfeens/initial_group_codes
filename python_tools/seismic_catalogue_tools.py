@@ -4,6 +4,8 @@ Created on Mon Mar  1 09:23:30 2021
 
 @author: ErTodd
 """
+
+
 def get_gcmt_catalogue(gcmt_outfile, catalogue_raw_files, raw_data_dir, search_params):
 
     import os
@@ -316,3 +318,79 @@ def organise_catalogues(Compile=1,Duplicate=1):
         CombineWithoutDuplicates(infile_list,outfile,t_window,d_window,m_window)
 #        outfile = "Tenke-Combined-nodups-oldmethod.csv"
 #        DuEvent(infile_list,outfile,t_window,d_window,m_window)
+
+def plot_MFD_histogram(mag_data, minm, maxm, mind, maxd, maxdt, savedir, plt_save, catname,ftsize):
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import os
+    
+    binwidth=0.1
+    good_bins = np.arange(minm, maxm + binwidth, binwidth)
+    # plot cumulative histogram for nsha18 catalogue
+    plt.figure(figsize=[5,3.5])
+    font = {'family' : 'DejaVu Sans', 'size'   : ftsize}
+    plt.rc('font', **font)
+    n, bins, patches = plt.hist(mag_data, bins=good_bins, cumulative=-1, color='blue')
+    if catname == 'nsha18':    
+        if maxdt == 2017:
+            print('Plotting MFD for',mind,'to',maxd,'km distance band')
+            plt.title('NSHA18 MFD')
+            figname = 'NSHA18_MFD_'+str(mind)+'_'+str(maxd)+'_histogram.png'
+        else:
+            print('Plotting MFD for',mind,'to',maxd,'km distance band')
+            plt.title('Post-NSHA18 MFD')
+            figname = 'PostNSHA18_MFD_'+str(mind)+'_'+str(maxd)+'_histogram.png'
+
+    elif catname == 'SHEEF2010':
+        if maxdt == 2010:
+            print('Plotting MFD for',mind,'to',maxd,'km distance band')
+            plt.title('SHEEF 2010 MFD')
+            figname = 'SHEEF2010_MFD_'+str(mind)+'_'+str(maxd)+'_histogram.png'
+        else:
+            print('Plotting MFD for',mind,'to',maxd,'km distance band')
+            plt.title('Post-SHEEF 2010 MFD')
+            figname = 'PostSHEEF2010_MFD_'+str(mind)+'_'+str(maxd)+'_histogram.png'
+    elif catname == 'usgs18':    
+        if maxdt == 2018:
+            print('Plotting MFD for',mind,'to',maxd,'km distance band')
+            plt.title('USGS18 MFD')
+            figname = 'USGS18_MFD_'+str(mind)+'_'+str(maxd)+'_histogram.png'
+        else:
+            print('Plotting MFD for',mind,'to',maxd,'km distance band')
+            plt.title('Post-USGS18 MFD')
+            figname = 'PostUSGS18_MFD_'+str(mind)+'_'+str(maxd)+'_histogram.png'
+    else:
+        print('Plotting',catname,'catalogue')
+        plt.title(catname + ' MFD')
+        figname = (catname + '_MFD_'+str(mind)+'_'+str(maxd)+'_histogram.png')
+
+
+    plt.xlabel('Magnitude', weight='heavy', fontsize=ftsize)
+    plt.ylabel('Cumulative number of events', weight='heavy', fontsize=ftsize)
+    if plt_save:
+        plt.savefig(os.path.join(savedir,figname), format='png', bbox_inches='tight', dpi=300)
+    return n, bins
+
+def plot_MFDs(good_bins, nyr, npostyr, sum_nyr_npostyr, figpath, plt_save, catname, ftsize):
+    import matplotlib.pyplot as plt
+       
+    # plot the annualised MFD for each catalogue and their sum
+    plt.figure(figsize=[10,7])
+    font = {'family' : 'DejaVu Sans', 'size'   : ftsize}
+    plt.rc('font', **font)
+    ax = plt.gca()
+    ax.set_xlim([good_bins[0],good_bins[-1]])
+    #ax.set_title('nsha18 Magnitude Frequency Distribution for ' + str(mind/1000) + ' km to ' + str(maxd/1000) + ' km range')
+    ax.set_xlabel('Magnitude (Mw)', weight='heavy', fontsize=ftsize)
+    ax.set_ylabel('Cumulative occurrence frequency (N/yr)', weight='heavy', fontsize=ftsize)
+    #xticklabels = [item.get_text() for item in ax.get_xticklabels()]
+    #yticklabels = [item.get_text() for item in ax.get_yticklabels()]
+    #ax.set_xticklabels(xticklabels, fontsize=ftsize)
+    #ax.set_yticklabels(yticklabels, fontsize=ftsize)
+    ax.plot(good_bins[:-1], nyr,c='orange', label=catname.upper()+' catalogue')
+    ax.plot(good_bins[:-1], npostyr, c='purple', marker='.', linestyle='--', label='post-'+catname.upper()+' catalogue')
+    ax.plot(good_bins[:-1], sum_nyr_npostyr, c='black', linestyle='-.', label='summed catalogues')
+    ax.legend(fontsize=ftsize)
+    ax.set_yscale('log')
+    if plt_save:
+        plt.savefig(figpath, format='png', bbox_inches='tight', dpi=300)

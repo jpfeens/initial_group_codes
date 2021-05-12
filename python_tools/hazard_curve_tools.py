@@ -48,6 +48,21 @@ def parse_openquake_hazard(IML_line,acceleration_line):
     
     return IMLs, accelerations
 
+# def parse_openquake_hazard(IML_line,acceleration_line):
+#     '''
+#     Parse the hazard curve results in openquake format. Works for hazard curve and quantile curve results.
+
+#     '''
+#     import numpy as np
+#     from misc_tools import poe2yrp
+    
+#     IMLs = np.asarray([float(x.replace('poe-','')) for x in IML_line.split(',')[3:]])
+
+#     accelerations = np.asarray([float(x) for x in acceleration_line.split(',')[3:]])
+    
+    
+#     return IMLs, accelerations
+
 def read_mean_hazard_openquake(IMT, results_dir, OQrunnum):
     '''
     Find, read, and parse the mean hazard results from OpenQuake for a given spectral period (IMT).
