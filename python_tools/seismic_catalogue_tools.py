@@ -133,51 +133,94 @@ def get_gcmt_catalogue(gcmt_outfile, catalogue_raw_files, raw_data_dir, search_p
 
     return run
 
-def magnitude_conversions(scale, mag):
+def magnitude_conversions(scale, mag, source,depth,year):
     
     from math import exp
-     # mb convert  to mw using exponential models from ISC-GEM Report 201201-V01 (Storchak et al. 2012)
-    if scale == "mb" or scale == "mb1mx" or scale == "mbtmp" or scale == "mb1":
-        if mag > 6.8:
-            mag = mag #NO - this completely ignores mb saturation and will underestimate Mw proxy values
+    
+    if source.upper() == 'GEONET':
+        if scale == "mb" or scale == 'mB': # From Ristau 2009
+            if float(depth) <= 33.0:
+                if mag > 6.3:
+                    mag = mag #Mag saturation and an underrepresentation, but perhaps the best we can do
+                    scale = "mw"
+                else:
+                    mag = round(0.79*mag + 0.95,1)
+                    scale = "mw"
+            else:
+                if mag > 6.3:
+                    mag = mag #Mag saturation and an underrepresentation, but perhaps the best we can do
+                    scale = "mw"
+                else:
+                    mag = round(0.77*mag + 1.07,1)
+                    scale = "mw"
+        
+        elif scale.lower() == "ms" or scale.lower() == "ms(bb)": 
+            mag = round(exp(-0.22+0.23*mag) + 2.86,1) #checked against Storchak et al. 2012 on 9/3/2020
             scale = "mw"
-        elif mag > 5 and mag <= 6.8:
-            mag = round(exp(-4.66+0.86*mag) + 4.56,1)
-            scale = "mw"
+        
+        elif scale.lower() == 'ml' or scale.lower() == 'mlv':
+            if float(year) < 2012.0:
+                mag = round((1/1.13)*mag  +(0.23/1.13),1) # Fig 10a in Ristau 2013
+                scale = 'mw'
+            else:
+                mag = round((1/1.06)*mag  +(0.31/1.06),1) # Fig 10e in Ristau 2013
+                scale = 'mw'
+        
+        elif scale.lower() == 'mw(mb)' or scale.lower() == 'md' or scale.lower() == 'm'  or scale.lower() == 'mw':
+            # Mw(mB) is the estimation of the moment magnitude Mw based on mB using 
+            # the Mw vs. mB regression of Bormann and Saul (2008). 
+            # The minimum distance for which this is computed is 5 degrees.
+            scale = 'mw'
+            
         else:
-            mag = round(0.85*mag+1.03,1)
+            print(source,year,mag,scale)
+                
+            
+    
+    else:
+        scale = scale.lower()
+         # mb convert  to mw using exponential models from ISC-GEM Report 201201-V01 (Storchak et al. 2012)
+        if scale == "mb" or scale == "mb1mx" or scale == "mbtmp" or scale == "mb1":
+            if mag > 6.8:
+                mag = mag #NO - this completely ignores mb saturation and will underestimate Mw proxy values
+                scale = "mw"
+            elif mag > 5 and mag <= 6.8:
+                mag = round(exp(-4.66+0.86*mag) + 4.56,1)
+                scale = "mw"
+            else:
+                mag = round(0.85*mag+1.03,1)
+                scale = "mw"
+               
+        # ms convert to mw using exponential models from ISC-GEM Report 201201-V01 (Storchak et al. 2012)
+        #mv is a surface wave magnitude defined by Vanek et al. ( 1962)
+        elif scale == "ms" or scale == "ms1mx" or scale == "ms7" or scale == "ms1" or scale == "msz" or scale == "mv":     
+            mag = round(exp(-0.22+0.23*mag) + 2.86,1) #checked against Storchak et al. 2012 on 9/3/2020
+            scale = "mw"           
+    
+        #convert mags to mw using Rong et al. 2015 eqns
+        elif scale == "ml" or scale == "mlv" and not source.lower() == 'geonet':
+            mag = round(1.3210*mag - 1.8631, 1)
+            scale = "mw"
+            
+        # convert Brazillian mR to mw following de Almeida et al. 2018
+        elif scale == 'mr' and source.lower() == 'brazil':
+            mag = mag + 0.34
+            scale = 'mw'
+           
+        #take other magnitudes as Mw
+        elif scale == "m" or scale == "md" or scale == "uk" or scale == "mg" or scale == "mu" or scale == "unk" or scale == 'mind' or scale == 'ma' or scale == 'mm' or scale == 'mi':
+            mag = mag
             scale = "mw"
            
-    # ms convert to mw using exponential models from ISC-GEM Report 201201-V01 (Storchak et al. 2012)
-    #mv is a surface wave magnitude defined by Vanek et al. ( 1962)
-    elif scale == "ms" or scale == "ms1mx" or scale == "ms7" or scale == "ms1" or scale == "msz" or scale == "mv":     
-        mag = round(exp(-0.22+0.23*mag) + 2.86,1) #checked against Storchak et al. 2012 on 9/3/2020
-        scale = "mw"           
-   
-    #convert mags to mw using Rong et al. 2015 eqns
-    elif scale == "ml" or scale == "mlv":
-        mag = round(1.3210*mag - 1.8631, 1)
-        scale = "mw"
-        
-    # convert Brazillian mR to mw following de Almeida et al. 2018
-    elif scale == 'mr':
-        mag = mag + 0.34
-        scale = 'mw'
-       
-    #take other magnitudes as Mw
-    elif scale == "m" or scale == "md" or scale == "uk" or scale == "mg" or scale == "mu" or scale == "unk" or scale == 'mind' or scale == 'ma' or scale == 'mm' or scale == 'mi':
-        mag = mag
-        scale = "mw"
-       
-    #Japan magnitude scale from https://agupubs.onlinelibrary.wiley.com/doi/10.1002/2017JB014697
-    elif scale == "mj":
-            a = 0.053
-            b = 0.33
-            c = 1.68
-            mag = round(a*mag**2 + b*mag + c ,1)
-       
-    elif scale == "mw" or scale == "mw(mb)":
-            pass
+        #Japan magnitude scale from https://agupubs.onlinelibrary.wiley.com/doi/10.1002/2017JB014697
+        elif scale == "mj":
+                a = 0.053
+                b = 0.33
+                c = 1.68
+                mag = round(a*mag**2 + b*mag + c ,1)
+           
+        elif scale == "mw" or scale == "mw(mb)":
+                pass
         
     return scale, mag
 
@@ -394,3 +437,5 @@ def plot_MFDs(good_bins, nyr, npostyr, sum_nyr_npostyr, figpath, plt_save, catna
     ax.set_yscale('log')
     if plt_save:
         plt.savefig(figpath, format='png', bbox_inches='tight', dpi=300)
+
+
