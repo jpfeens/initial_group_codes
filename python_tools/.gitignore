@@ -1,1 +1,8 @@
-./__pychache__/
+__pycache__\deaggregation_tools.cpython-38.pyc
+__pycache__\deterministic_tools.cpython-38.pyc
+__pycache__\hazard_curve_tools.cpython-38.pyc
+__pycache__\map_tools.cpython-38.pyc
+__pycache__\misc_tools.cpython-38.pyc
+__pycache__\plotting_tools.cpython-38.pyc
+__pycache__\seismic_catalogue_tools.cpython-38.pyc
+__pycache__\uhrs_tools.cpython-38.pyc
